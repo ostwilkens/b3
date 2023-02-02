@@ -5,4 +5,6 @@ ElevenLabs supports  https://elevenlabs.io/
 
 # Setup
 - `pip install -r requirements.txt`
+- Get a ElevenLabs API key from https://beta.elevenlabs.io/speech-synthesis
+- Get a OpenAI API key from https://platform.openai.com/account/api-keys
 - Run `python3 main.py` with OPENAI_API_KEY and ELEVENLABS_API_KEY environment variables
