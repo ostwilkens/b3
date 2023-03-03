@@ -6,6 +6,7 @@ import openai
 import requests
 import json
 import os
+import tiktoken
 
 
 r = sr.Recognizer()
@@ -32,7 +33,6 @@ def listen():
     while True:
         with sr.Microphone() as mic:
             data = r.listen(mic, phrase_time_limit=5)
-
             return data
 
 
@@ -82,11 +82,18 @@ def text_to_speech(text, voice_id, save_path='response.mp3'):
 
 voice_id = get_voice_id()
 
-prompt = f"""The following is a group chat conversation with 'AI', a rogue AI. The AI is benovelent, nihilistic, and funny.
+prompt_ai = f"""The following is a group chat conversation with 'AI', a rogue AI. The AI is benovelent, nihilistic, and funny.
 If the AI doesn't know the answer to a question, it makes something up on the spot. 
 The AI responds concisely. 
 
 """
+prompt_chat = ""
+
+def num_tokens_from_string(string: str) -> int:
+    """Returns the number of tokens in a text string."""
+    encoding = tiktoken.get_encoding("p50k_base")
+    num_tokens = len(encoding.encode(string))
+    return num_tokens
 
 while True:
     # capture microphone audio until silence
@@ -99,14 +106,15 @@ while True:
     print(f"Heard: {transcription}")
 
     # add the spoken text to the prompt
-    prompt += f"Person: {transcription}\nAI:"
+    prompt_chat += f"Person: {transcription}\nAI:"
 
+    full_prompt = prompt_ai + prompt_chat
     # get response text from openai api
-    response = gpt(prompt)
+    response = gpt(prompt_ai + prompt_chat)
     print(f"Response: {response}")
 
     # add ai response to prompt, so we can have a continuous conversation
-    prompt += f"{response}\n"
+    prompt_chat += f"{response}\n"
 
     # let evelenlabs api speak
     print("Waiting for speech synthesis...")
@@ -114,3 +122,12 @@ while True:
 
     # play response audio
     play_mp3("response.mp3")
+
+    prompt_len = num_tokens_from_string(full_prompt)
+    while prompt_len > 4096:
+        # Replace lines until enough
+        prompt_split = prompt_chat.split("\n")
+        prompt_split.pop(0)
+        prompt_chat = "\n".join(prompt_split)
+        full_prompt = prompt_ai + prompt_chat
+        prompt_len = num_tokens_from_string(full_prompt)
